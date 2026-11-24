@@ -12,6 +12,7 @@ toolbarMode = "minimal"
 
 [server]
 headless = false
+showEmailPrompt = false   # never block on the first-run "Welcome to Streamlit" email prompt (local or deploy)
 runOnSave = false
 
 [browser]
