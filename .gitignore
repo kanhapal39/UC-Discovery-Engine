@@ -2,6 +2,9 @@ data/raw/*
 !data/raw/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
+# committed on purpose so the dashboard runs from a fresh clone without API keys (see README)
+!data/processed/tagged_v2.jsonl
+!data/processed/decomposition.json
 .env
 .venv/
 __pycache__/

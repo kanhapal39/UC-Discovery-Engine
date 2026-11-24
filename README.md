@@ -103,8 +103,21 @@ python -m pipeline.score_gold      # golden-set agreement for tagged_v2 (--in <f
 streamlit run dashboard/app.py     # dashboard on http://localhost:8501 (run from the project root)
 ```
 
-`data/raw/` and `data/processed/` aren't in the repository (size, and raw review data), so the dashboard needs the
-steps above to be run first.
+## Where outputs land
+
+Two result files **are included** in the repository, so the dashboard works straight after cloning, with no API keys
+and no pipeline run:
+
+| File | What it is |
+|---|---|
+| `data/processed/tagged_v2.jsonl` | the 500-review sample tagged by Nemotron (PII-scrubbed, names redacted): input to the funnel and dashboard |
+| `data/processed/decomposition.json` | the 4-stage funnel output of `python -m pipeline.decompose` |
+
+Everything else stays out of git: `data/raw/` (raw collected reviews and investor PDFs) and the rest of
+`data/processed/` (cleaned and filtered sets, the tag cache, logs). Re-create those with the commands above.
+
+To open the dashboard from a fresh clone: run Setup, then `streamlit run dashboard/app.py`. Without the earlier
+tagging run (`tagged.jsonl`), the Data Quality page shows only the current run, not the old-vs-new comparison.
 
 ## Repository layout
 

@@ -21,7 +21,11 @@ import argparse
 import json
 from collections import Counter
 
+from pathlib import Path
+
 from pipeline.clean import PROCESSED_DIR
+
+ROOT = Path(__file__).resolve().parent.parent
 
 # --- stage rules (codebook values) -------------------------------------------------------------------------
 S1_OUTCOMES = {"service_not_delivered"}
@@ -64,6 +68,15 @@ def stage_of(sig):
     return STAGES[-1]
 
 
+def _rel(path):
+    """Path relative to the project root, so outputs don't record a machine-specific absolute path."""
+    p = Path(path).resolve()
+    try:
+        return str(p.relative_to(ROOT))
+    except ValueError:
+        return p.name
+
+
 def run(path):
     rows = [json.loads(l) for l in open(path, encoding="utf-8")]
     elig = [r for r in rows if r.get("metric_eligible")]
@@ -104,7 +117,7 @@ def run(path):
         if t["service_outcome"] == "resolved_but_recurred":
             s2_also["resolved_but_recurred(passed_stage2_by_rule)"] += 1
     out = {
-        "input": str(path), "metric_eligible": n,
+        "input": _rel(path), "metric_eligible": n,
         "stage_counts": {s: stage[s] for s in STAGES},
         "stage_pct": {s: pct(stage[s]) for s in STAGES},
         "cross_stage_leakage": {s: dict(v, **{"pct_any_leak": round(100.0 * v["any_leak"] / v["n"], 1) if v["n"] else 0.0,

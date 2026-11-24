@@ -1,0 +1,97 @@
+{
+  "input": "data/processed/tagged_v2.jsonl",
+  "metric_eligible": 402,
+  "stage_counts": {
+    "stage1_job_not_delivered": 89,
+    "stage2_poor_execution": 117,
+    "stage3_trust_soured": 138,
+    "stage4_leaked_local_or_competing_platform": 4,
+    "outside_framework": 54
+  },
+  "stage_pct": {
+    "stage1_job_not_delivered": 22.1,
+    "stage2_poor_execution": 29.1,
+    "stage3_trust_soured": 34.3,
+    "stage4_leaked_local_or_competing_platform": 1.0,
+    "outside_framework": 13.4
+  },
+  "cross_stage_leakage": {
+    "stage1_job_not_delivered": {
+      "n": 89,
+      "any_leak": 4,
+      "local_offline": 1,
+      "competing_platform": 3,
+      "both": 0,
+      "pct_any_leak": 4.5,
+      "pct_local_offline": 1.1,
+      "pct_competing_platform": 3.4
+    },
+    "stage2_poor_execution": {
+      "n": 117,
+      "any_leak": 23,
+      "local_offline": 22,
+      "competing_platform": 2,
+      "both": 1,
+      "pct_any_leak": 19.7,
+      "pct_local_offline": 18.8,
+      "pct_competing_platform": 1.7
+    },
+    "stage3_trust_soured": {
+      "n": 138,
+      "any_leak": 24,
+      "local_offline": 18,
+      "competing_platform": 6,
+      "both": 0,
+      "pct_any_leak": 17.4,
+      "pct_local_offline": 13.0,
+      "pct_competing_platform": 4.3
+    }
+  },
+  "earlier_stage_overlays": {
+    "stage1_job_not_delivered+app_friction": 16,
+    "stage1_job_not_delivered+leaked": 4,
+    "stage1_job_not_delivered+support_unresponsive": 32,
+    "stage1_job_not_delivered+trust_quality_concern": 51,
+    "stage1_job_not_delivered+trust_soured": 70,
+    "stage1_job_not_delivered+warranty_redo_denied": 13,
+    "stage2_poor_execution+app_friction": 9,
+    "stage2_poor_execution+leaked": 23,
+    "stage2_poor_execution+support_unresponsive": 50,
+    "stage2_poor_execution+trust_quality_concern": 114,
+    "stage2_poor_execution+trust_soured": 114,
+    "stage2_poor_execution+warranty_redo_denied": 55
+  },
+  "stage3_detail": {
+    "primary_reason_mentions": {
+      "trust_quality_concern": 112,
+      "warranty_redo_denied": 65,
+      "support_unresponsive": 45,
+      "app_friction": 18
+    },
+    "outcome": {
+      "not_resolved_other": 70,
+      "resolved_but_recurred": 37,
+      "unclear": 23,
+      "partially_resolved": 3,
+      "cancelled_over_quote_dispute": 3,
+      "resolved_as_expected": 2
+    }
+  },
+  "leak_signals_all_stages": {
+    "any_leak_signal": 55,
+    "reason:switched_to_local_provider": 45,
+    "workaround:local_offline_provider": 45,
+    "channel:local_offline_provider": 39,
+    "channel:used_different_platform": 11,
+    "workaround:different_app_platform": 11,
+    "reason:switched_to_competitor_app": 9
+  },
+  "outside_framework_reasons": {
+    "not_applicable": 40,
+    "unclear": 8,
+    "price_too_high": 6
+  },
+  "notes": {
+    "resolved_but_recurred(passed_stage2_by_rule)": 41
+  }
+}

@@ -170,7 +170,8 @@ V = {  # live numbers for content.yaml placeholders
     "neg_pct": round(100.0 * (df["sentiment"] == "negative").mean()),
     "play_pct": round(100.0 * (df["source"] == "play_store").mean()),
     "chan_unclear_pct": round(100.0 * (df["rebooking_channel"] == "unclear").mean()),
-    "flips": int(noise.loc[noise["field"] == "metric_eligible", "reviews changed"].iat[0]) if noise is not None else "?",
+    "flips": (int(noise.loc[noise["field"] == "metric_eligible", "reviews changed"].iat[0]) if noise is not None
+              else content.get("recorded_metric_eligible_flips", "?")),
     "gold_n": gold_n,
 }
 fill = lambda s: s.format(**V)
@@ -356,7 +357,10 @@ with p5:
                     "outputs, not a pipeline bug: every row passed validation and every code step is deterministic. "
                     "**Treat every percentage on this dashboard as directional (±5-8 points).**" % V["flips"])
     else:
-        st.caption("Old run (data/processed/tagged.jsonl) not found; comparison unavailable.")
+        st.markdown("The old run (`data/processed/tagged.jsonl`) isn't in this copy, so the per-field comparison isn't "
+                    "shown. Measured on 2026-11-24 (see `docs/evidence_log.md`): **%s of 500 reviews flipped "
+                    "metric_eligible** between two runs of the same model. **Treat every percentage on this dashboard "
+                    "as directional (±5-8 points).**" % V["flips"])
 
     st.subheader("Limitations")
     for item in content["limitations"]:

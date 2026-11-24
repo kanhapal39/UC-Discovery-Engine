@@ -2,6 +2,9 @@
 # wording from the Part 2 write-up once it exists. Edit freely; no code change needed. Numbers in {braces} are
 # filled in live from the data, so they can't drift from the tags.
 
+# Measured 2026-11-24 (docs/evidence_log.md); used when the old run (tagged.jsonl) is not present, e.g. a fresh clone.
+recorded_metric_eligible_flips: 11
+
 status_note: "Findings and limitations are provisional (from the Part 2 analysis), pending the Part 2 write-up."
 
 context_quote:
