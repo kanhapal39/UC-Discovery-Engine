@@ -338,7 +338,9 @@ Check here before re-investigating a source.
   - metric_eligible flipped for 11 of 500 reviews (399 -> 402 eligible).
   - category changed on 92/500 (mostly unclear / not_mentioned / app_general swaps); rebooking_channel on 114/500
     (75 are did_not_seek_again <-> unclear); decision_trigger on 83/500 (reactive_breakdown/planned_habitual <-> unclear);
-    acquisition_channel 36/500, workaround 20/500, sentiment 7/500.
+    acquisition_channel 36/500, workaround 19/500 (corrected 2026-11-24 from 20: one review's workaround values were
+    only reordered, not changed; the count now compares value SETS, as the dashboard does, not list order),
+    sentiment 7/500.
 - Caveat on cause: v2's prompt added four rules (for reason_not_rebook, unmet_need, post_service_expectation,
   service_outcome), so the churn in other fields is Nemotron's non-determinism plus possible knock-on effects of that
   prompt change; only a repeat run with an identical prompt would isolate pure non-determinism. Either way it comes
