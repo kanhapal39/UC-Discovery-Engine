@@ -1,0 +1,49 @@
+# Text shown on the dashboard. PROVISIONAL: drafted from the Part 2 analysis (2026-11-24), to be replaced with the
+# wording from the Part 2 write-up once it exists. Edit freely; no code change needed. Numbers in {braces} are
+# filled in live from the data, so they can't drift from the tags.
+
+status_note: "Findings and limitations are provisional (from the Part 2 analysis), pending the Part 2 write-up."
+
+context_quote:
+  figure: "~84%"
+  label: "of UC's NTV comes from repeat users (9M FY26)"
+  quote: "The share of repeat users in total NTV has grown from 72% in FY22 to ~84% in 9M FY26, demonstrating that customers see sustained value in staying on the platform and deepening customer trust"
+  source: "Urban Company Shareholders' Letter and Results, Q3 FY26, p.17"
+
+headline_findings:
+  - title: "Execution and trust are most of the problem"
+    body: "Stages 2 and 3 together hold {s23_pct}% of complaint voice ({s23} reviews), stable across tagging runs. How it splits between the two depends on the tagging rule."
+  - title: "About 1 in 5 never got the job done"
+    body: "{s1} reviews ({s1_pct}%) stop at Stage 1: professional no-shows and bookings cancelled by UC."
+  - title: "Warranty refusal turns failures into lost customers"
+    body: "{warranty} reviews mention a warranty or redo refused; {warranty_s2} of them follow a poorly done job, where the warranty was the way back."
+  - title: "Unresponsive support compounds every failure"
+    body: "{support} reviews say support didn't respond; {support_s1} of them follow a job that never happened."
+  - title: "Leakage goes to local providers, not the same professional"
+    body: "{leak} reviews show leakage, mostly to local/offline providers; only {same_pro} mention rebooking the same professional off-app. The {s4} reviews that leak with no earlier failure are all about price."
+
+opportunities:
+  - signal: warranty
+    statement: "Warranty honouring is a recovery lever for Stage 1 and 2 failures, not just Stage 3."
+  - signal: support
+    statement: "Reachable human support after a failed or no-show booking can hold customers who would otherwise leave at Stage 1."
+
+limitations:
+  - "Public complaint voice, not churned customers: {neg_pct}% of the reviews are negative and {play_pct}% come from the Play Store. Shares describe what complainers write about, not how many customers churn for each reason."
+  - "Directional, not precise (±5-8 points): two Nemotron runs on the same reviews disagree on {flips} metric_eligible flags and on 80-115 reviews in several fields."
+  - "Validated on a small golden set: 20 hand-corrected reviews, {gold_n} of them in the tagged sample. One review moves a field's score by about 8 points."
+  - "The Stage 2 vs Stage 3 split depends on how service_outcome is tagged (each ranged 24%-39% across runs). Use the combined figure."
+  - "Where customers went next is mostly unknown: rebooking_channel is 'unclear' for {chan_unclear_pct}% of reviews."
+  - "Sources so far: Play Store, consumercomplaints.in and 3 App Store reviews (Apple's India feed is empty). Trustpilot is excluded (bot check); YouTube and Reddit aren't collected yet. City is almost never stated, so there's no city view."
+
+# One opportunity statement per unmet_need value (Product Opportunities page).
+unmet_need_opportunities:
+  quality_assurance_vetting: "Tighter professional vetting and post-job QA checks would address the most-cited unmet need."
+  honoured_warranty_after_sales: "Make warranty and redo visits easy to claim and reliably honoured: it's the after-sales promise customers say is broken."
+  faster_responsive_support: "A reachable human (not a chatbot loop) when something goes wrong."
+  transparent_pricing: "Quotes that match the final bill, with charges explained before the job starts."
+  flexible_rescheduling: "Rescheduling that works for the customer, not only for UC."
+  consistency_same_professional: "Let customers ask for the same professional again inside the app."
+  loyalty_recognition: "Recognise repeat customers (priority, perks) so coming back feels worth it."
+  proactive_reminders: "Timely reminders for recurring services."
+  unclear: "No specific unmet need stated."

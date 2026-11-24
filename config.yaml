@@ -1,0 +1,188 @@
+# Collector configuration. Public, no-login sources only (see CLAUDE.md).
+#
+# max_items = maximum number of raw items FETCHED from a source. The keyword filter is then
+# applied, so the number written to data/raw/<source>.jsonl is <= max_items.
+
+# Keyword groups. The flat `keywords` list used everywhere is the union, built by
+# collect.common.load_config; the groups are kept for reporting which kind of signal an item carries.
+# Collectors save EVERY fetched item to data/raw/ (with matched_keywords); filter.py decides.
+keyword_groups:
+  original:
+    - "didn't book again"
+    - "one time only"
+    - "overcharged"
+    - "professional didn't show up"
+    - "cancelled my booking"
+    - "switched to a local"
+    - "no response from support"
+    - "redo the service"
+    - "warranty"
+    - "stopped using urban company"
+  switching:            # added 2026-11-22: natural review phrasing for churn / going direct
+    - "never again"
+    - "won't use"
+    - "wont book"
+    - "used to book"
+    - "not booking again"
+    - "switched to"
+    - "found a local"
+    - "direct contact"
+    - "called him directly"
+    - "his number"
+    - "whatsapp him"
+    - "uninstall"
+    - "deleted the app"
+    - "better options"
+    - "last time i"
+    - "waste of money"
+    - "regret booking"
+  loyalty:              # added 2026-11-22: why people DO come back (balances the 1-star skew)
+    - "always book"
+    - "every time i"
+    - "regular customer"
+    - "been using for"
+    - "years now"
+    - "my go-to"
+    - "reliable service"
+    - "trust them"
+    - "same professional every time"
+
+# Keyword matching: case-insensitive; apostrophes ignored ("wont" = "won't"); a match must START at a
+# word boundary ("his number" doesn't match "this number"). Fuzzy matching (rapidfuzz partial_ratio)
+# only for keywords of at least fuzzy_min_chars, since short phrases fuzzy-match far too much.
+keyword_match:
+  fuzzy_threshold: 90
+  fuzzy_min_chars: 12
+  # Spelling variants that count as the canonical keyword (reported under the canonical name). Added
+  # 2026-11-22: with fuzzy limited to >=12 chars, "overcharged" (11) stopped matching "over charge" (20 items lost).
+  variants:
+    overcharged: ["overcharge", "over charge", "over-charge"]
+
+http:
+  user_agent: "UC-Discovery-Engine/0.1 (public-data research; no login)"
+  request_delay_seconds: 2.0
+  timeout_seconds: 30
+
+sources:
+  play_store:
+    enabled: true
+    max_items: 30000
+    app_id: "com.urbanclap.urbanclap"   # verified 2026-11-22: "Urban Company: Home Services", 10M+ installs
+    lang: "en"
+    country: "in"
+
+  app_store:
+    enabled: true
+    max_items: 500                      # public RSS feed: 10 pages x 50 per storefront at most
+    app_id: 1032480595                  # verified 2026-11-22 via iTunes Search API
+    countries: ["in", "us", "ae", "gb"]
+
+  trustpilot:
+    enabled: false                      # EXCLUDED 2026-11-22: AWS WAF bot challenge (not a login wall). See docs/evidence_log.md
+    max_items: 200
+    domain: "urbancompany.com"
+
+  consumer_complaints:
+    enabled: true
+    max_items: null                     # no cap: walk every listing page (9 pages / ~170 complaints on 2026-11-22)
+    brand_url: "https://www.consumercomplaints.in/urban-company-b115885"
+
+  youtube:
+    enabled: true
+    max_items: 2000                     # total comments
+    search_queries:
+      - "Urban Company review"
+      - "Urban Company experience"
+      - "Urban Company service"
+    max_videos_per_query: 10
+    region_code: "IN"
+
+  shareholder_letters:
+    enabled: true
+    max_items: 2000                     # paragraphs
+    financials_url: "https://investorrelations.urbancompany.com/financials"
+    doc_patterns: ["letter", "transcript"]
+    # The shared keywords are complaint phrases and rarely appear in investor documents, so all
+    # paragraphs are kept for now. Set to true to apply the shared keyword filter.
+    apply_keyword_filter: false
+
+# ---------------------------------------------------------------------------
+# Pipeline settings (decisions dated in docs/evidence_log.md)
+pipeline:
+  # Sources that are NOT customer voice: never tagged. Routed by filter.py to
+  # data/processed/business_context.jsonl for direct quotes in the business-context framing.
+  untagged_sources: [shareholder_letters]
+
+metric:
+  # The 90-day repeat-booking decomposition (Part 2) leaves out items with these categories. They are still tagged.
+  exclude_categories: [product_purchase, house_help]   # house_help added 2026-11-22: brief excludes InstaHelp quick-service housekeeping from the anchor booking
+
+# Relevance filter (pipeline/filter.py). Applies to customer-voice sources only.
+filter:
+  min_words: 3                  # lowered from 5 on 2026-11-22 (5 dropped e.g. "cancelled booking without informing")
+  # Out of scope (CLAUDE.md: partner/provider apps): texts written by UC professionals about their own work.
+  # Refined 2026-11-22: a bare "partner app" mention and "my ACCOUNT blocked" also hit CUSTOMERS (e.g. "slow
+  # because the partner app is very slow"; "using UC for years... my account was blocked"), so only
+  # first-person professional phrasing counts.
+  partner_voice_patterns:
+    - "\\bas an? (uc |urban company |urban )?(service )?partner\\b"
+    - "(?<!if )\\bi ?am (the |a |an )?(uc |urban company |urban )?(professional|partner|technician|beautician|service provider)\\b"   # not "if I am professional" (IVR menu quote)
+    - "\\bmy (partner )?id (is |was |got |has been )?(blocked|deactivated|suspended)\\b"
+    - "\\bexperience (in|on|with) (the )?(urban |uc )?partner app\\b"
+    - "^\\W*(urban |uc )?partner app\\b"
+    - "\\bpartner app se\\b"
+    - "\\bservice partner app\\b"
+    - "\\b(joining|registration|onboarding|approval) fees?\\b"
+  # For sources not inherently about UC (youtube, reddit), the text must mention UC.
+  require_uc_mention_sources: [youtube, reddit]
+  uc_mention_pattern: "\\b(urban ?company|urbanclap|urban clap|uc)\\b"
+  # Sources whose items MUST match a keyword (their raw files hold every fetched review, unfiltered).
+  require_keyword_sources: [play_store, app_store, consumer_complaints]
+  # Other sources (youtube, reddit): relevant = matches a keyword OR has >= min_experience_signals of these terms.
+  min_experience_signals: 2
+  experience_signals: [book, booking, booked, service, professional, technician, cleaner, beautician,
+                       warranty, revisit, refund, cancel, support, customer care, chatbot, charge,
+                       price, quote, bill, again, rebook, local, slot, visit, repair, app]
+  # Near-duplicate removal across all customer-voice sources (rapidfuzz.ratio, 0-100). Keeps the earliest.
+  near_duplicate_ratio: 90
+
+# LLM tagging (pipeline/tag.py). Needs GROQ_API_KEY in .env.
+tagging:
+  # 2026-11-22: llama-3.3-70b-versatile is no longer offered on Groq (startup check caught it). Picked the
+  # largest general text model in the live list. Alternative: qwen/qwen3.8-27b.
+  model: "openai/gpt-oss-120b"
+  temperature: 0
+  max_repair_attempts: 1        # one re-ask with the validation errors, then mark the item invalid
+  requests_per_minute: 25       # client-side pacing; Groq free tier is 1,000 req/day + 8,000 tokens/min (retry-after honoured)
+  max_completion_tokens: 8192    # reasoning + JSON for a 5-review batch; the default cut a batch off (400 json_validate_failed)
+  request_timeout_seconds: 120   # a dropped connection hung the first full run with no timeout
+  # PRIMARY tagger (owner decision 2026-11-22: "use Nvidia only"), for the WHOLE sample. Run with:
+  #   python -m pipeline.tag --provider nvidia --batch-size 5 --concurrency 4 --in data/processed/sample.jsonl
+  # Same-20 check: 74% agreement with per-item gpt-oss (gpt-oss with itself: 89%). It tags more reasons per review.
+  standby:
+    provider: nvidia
+    base_url: "https://integrate.api.nvidia.com/v1"
+    model: "nvidia/nemotron-3-ultra-550b-a55b"
+    api_key_env: NVIDIA_API_KEY
+    request_timeout_seconds: 360   # a 10-review batch on the 550B model ran past 120s (2026-11-22)
+    max_tokens: 16384              # 8192 cut a 10-review batch off mid-JSON (finish=length; reasoning ate the budget)
+  # NOT USED (owner, 2026-11-22: "Don't use open router use Nvidia only"). Kept for the record.
+  # OpenRouter (2026-11-22, owner: "use the openrouter to complete it"): the SAME model as the validated Groq pilots, pinned to
+  # the Groq backend. Auto-routing sent a test to Google, which returned broken JSON. Paid (~$1 for the full run at listed
+  # prices); needs OpenRouter credits. Run with the validated method:  --provider openrouter --batch-size 5
+  standby_openrouter:
+    base_url: "https://openrouter.ai/api/v1"
+    model: "openai/gpt-oss-120b"
+    api_key_env: OPENROUTER_API_KEY
+    provider_order: ["Groq"]
+    json_mode: true
+    request_timeout_seconds: 180
+  batch_size: 5                 # validated method (runs C/O). 10 was tried in run D, abandoned unvalidated
+  reasoning_effort: null        # default reasoning = the validated method (run C/O). 'low' (run D) was abandoned unvalidated
+  max_daily_token_wait_seconds: 3600   # free tier caps 200k TOKENS/day, refilling ~8.3k/h; batch+repair needs up to ~12k tokens
+
+# Tagging sample (pipeline/sample.py), added 2026-11-22: tag 500 instead of all 1,118 to cut load/cost.
+sample:
+  size: 500
+  seed: 20261122
+  keep_all_sources: [consumer_complaints, app_store]

@@ -1,0 +1,18 @@
+# Light, minimal theme for the read-only dashboard (streamlit run dashboard/app.py)
+[theme]
+base = "light"
+primaryColor = "#1F4E79"            # the one accent: charts, highlights, active tab
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F5F6F7"
+textColor = "#111111"
+font = "sans serif"
+
+[client]
+toolbarMode = "minimal"
+
+[server]
+headless = false
+runOnSave = false
+
+[browser]
+gatherUsageStats = false

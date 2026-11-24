@@ -1,0 +1,170 @@
+# Tagging codebook: 14 fields applied to every collected item by pipeline/tag.py.
+#
+# status:
+#   fixed   value set decided by the project owner (2026-11-22), or determined by the data
+#           source. Locked: tag.py must emit ONLY these values for the field; nothing is added.
+#   draft   reasonable value set, not scoring-critical; review when convenient.
+#
+# common_values are appended ONLY to fields with status: draft. Fixed fields use exactly their list.
+
+common_values: [not_mentioned, unclear]
+
+fields:
+  category:
+    description: UC service line the text is about.
+    multi: false
+    status: draft
+    values: [cleaning, salon_women, salon_spa_men, massage_spa, ac_appliance_repair, electrician,
+             plumber, carpenter, painting_waterproofing, pest_control, house_help, other_service,
+             app_general, product_purchase]
+    # product_purchase (fixed 2026-11-22): a UC product bought outright (Native RO purifier, Native
+    # smart lock, etc.) and its after-sales/AMC/warranty service. Tag these fully, but EXCLUDE them
+    # from the repeat-booking metric decomposition (config.yaml metric.exclude_categories).
+    # It replaces the earlier draft values water_purifier_product and smart_lock_product.
+    # house_help (2026-11-22): UC's on-demand maid/cook/babysitter offering (InstaHelp quick-service
+    # housekeeping). Tag normally; EXCLUDED from the repeat-booking decomposition, same as product_purchase.
+    rules:
+      - "InstaHelp / Insta Help / house help / an on-demand maid, cook, helper or babysitter booked through UC -> house_help. (A technician's 'helper', or comparing a cleaning job to a maid, is NOT house_help.)"
+      - "A UC Native product (Native RO / Native M1 / M2 water purifier, Native smart lock, 'Native items', Native device) or its after-sales, AMC, filter or warranty -> product_purchase. A RO/purifier REPAIR SERVICE for another brand is ac_appliance_repair, not product_purchase."
+    # Applied in CODE after the model answers, whatever category the model chose (pilot 2026-11-22: 2/20 leaked).
+    # Narrowed with data on the 1,118 kept items: bare 'helper' (technicians' helpers), bare 'maid' (comparisons),
+    # bare RO/purifier (other-brand RO repair service) and bare 'lock' are NOT forced; the model judges those.
+    code_overrides:
+      house_help: ['\binsta ?help\b', '\bhouse ?help(ers?)?\b']
+      product_purchase: ['\bnative\s*(m1|m2|m2 pro|ro|water|purifier|lock|smart lock|items?|products?|filter|device)\b']
+
+  decision_trigger:
+    description: What made the customer book the (first) service.
+    multi: false
+    status: fixed
+    values: [planned_habitual, reactive_breakdown, life_event, recommendation, ad_promo,
+             search_discovery, unclear]
+
+  acquisition_channel:
+    description: How the customer came to UC.
+    multi: false
+    status: fixed
+    values: [ad, referral_word_of_mouth, organic_search, pre_existing_app_user, social_media, unclear]
+
+  post_service_expectation:
+    description: What the customer expected after the service was done.
+    multi: true
+    status: fixed
+    rules:
+      - "unclear = nothing stated either way. nothing_specific = the customer explicitly says they expected nothing beyond the job itself. (fixed 2026-11-22)" 
+      - "A bare mention of a warranty is NOT an expectation. Tag warranty_support_if_issue ONLY when the customer says they expected warranty/redo coverage, or complains that a warranty/redo was refused. If no expectation is described at all, tag unclear. (2026-11-24, gold-set scoring)"
+    values: [nothing_specific, automatic_reminder_follow_up, warranty_support_if_issue,
+             same_professional_next_time, easy_rebooking_in_app, unclear]
+
+  service_outcome:
+    description: How the service actually went.
+    multi: false
+    status: fixed
+    values: [resolved_as_expected, resolved_but_recurred, partially_resolved,
+             not_resolved_professional_issue, not_resolved_other, service_not_delivered,
+             cancelled_over_quote_dispute, unclear]
+    rules:
+      - "cancelled_over_quote_dispute = the professional quoted/diagnosed, the customer found the quote inflated and cancelled (often getting it done cheaper locally). The job was never attempted, so NOT not_resolved_professional_issue; the customer cancelled, so NOT service_not_delivered. (added 2026-11-22)"
+      - "service_not_delivered = the service never happened (professional no-show, or UC-side cancellation). Use it instead of not_resolved_other. not_resolved_* = the service happened but went badly." 
+      - "not_resolved_professional_issue ONLY when the review blames the professional specifically (poor workmanship, damage, rude behaviour, left the job half done). Do NOT default to it whenever something went wrong. If the review doesn't say whose fault it was, or blames UC / the platform / support / the process (billing, warranty handling, parts), use not_resolved_other; if the service never happened, service_not_delivered. (2026-11-24, gold-set scoring)"
+
+  rebooking_channel:
+    description: Where the customer went (or would go) the next time the need came up.
+    multi: false
+    status: fixed
+    values: [reopened_app, searched_online_again, contacted_same_professional_directly,
+             asked_family_friends_neighbours, used_different_platform, local_offline_provider,
+             did_not_seek_again, unclear]
+    rules:
+      - "local_offline_provider = the next job went to a local/offline person or shop (society plumber, local vendor, brand's own service centre). used_different_platform = another APP/online platform. (added 2026-11-22)"
+
+  reason_not_rebook:
+    description: Stated reason for not booking UC again.
+    multi: true
+    status: fixed
+    values: [price_too_high, trust_quality_concern, support_unresponsive, forgot_no_reminder,
+             switched_to_local_provider, one_time_need_only, app_friction, professional_no_show,
+             warranty_redo_denied, booking_cancelled_by_uc, switched_to_competitor_app,
+             not_applicable, unclear]
+    rules:
+      - "switched_to_local_provider: ALWAYS include it when the customer explicitly says they went to a local/offline person instead (e.g. 'called my society plumber', 'local vendor fixed it'), alongside any other reasons. (2026-11-22)"
+      - "switched_to_competitor_app = the customer names or recommends another app (e.g. 'Go for Snabbit', 'try Snabbit'). (added 2026-11-22)"
+      - "Safety/identity concerns (a different person than assigned showed up, no record of who enters the home, feeling unsafe) -> include trust_quality_concern. (2026-11-22)"
+      - "Final bill differs from the quote/estimate, or unexplained charges -> trust_quality_concern, NOT price_too_high. price_too_high = 'it's just expensive'."
+      - "warranty_redo_denied = a warranty, revisit or redo claim refused, ignored, or blocked (e.g. 'warranty period over', revisit slots disabled)."
+      - "booking_cancelled_by_uc = UC/the system cancelled the booking. A professional simply not turning up -> professional_no_show."
+      - "not_applicable = happy or still-rebooking customer; there is no non-rebooking reason to give."
+      - "unclear = ONLY when the customer appears not to rebook but gives no reason. Never use it for happy customers." 
+      - "Include a value ONLY if this review states or clearly implies it. Do NOT add a second value because it commonly goes with the first: if the text supports exactly one reason, tag exactly one. In particular, never add support_unresponsive, warranty_redo_denied or app_friction as a bonus: support_unresponsive needs the customer to say they contacted support and got no/poor response; warranty_redo_denied needs a warranty/redo/revisit claim that was refused or blocked; app_friction needs a concrete problem using the app itself. (2026-11-24, gold-set scoring)"
+
+  unmet_need:
+    description: Need the customer had that UC didn't meet.
+    multi: true
+    status: fixed
+    values: [consistency_same_professional, proactive_reminders, transparent_pricing,
+             faster_responsive_support, loyalty_recognition, quality_assurance_vetting,
+             flexible_rescheduling, honoured_warranty_after_sales, unclear]
+    rules:
+      - "Can't reach a human / chatbot loop -> faster_responsive_support (no separate value)."
+      - "honoured_warranty_after_sales = needed a warranty/redo/after-sales visit to actually happen." 
+      - "Include a value ONLY if this review states or clearly implies that need. Do NOT add a second value because it commonly goes with the first: if the text supports exactly one need, tag exactly one. In particular, never add faster_responsive_support as a bonus: it needs the customer to describe trying to reach support / a human and failing or waiting. (2026-11-24, gold-set scoring)"
+
+  in_app_pain:
+    description: Friction inside the UC app/website itself.
+    multi: true
+    status: draft
+    values: [booking_flow, slot_availability, payment_refund, cancellation_fees, chat_support_bot,
+             pricing_display, login_otp, app_bugs, none]
+
+  workaround:
+    description: What the customer did instead of, or around, UC.
+    multi: true
+    status: fixed
+    values: [direct_whatsapp_same_professional, local_offline_provider,
+             family_friend_referral_informal, different_app_platform, none_mentioned]
+
+  household_signal:
+    description: Household context inferable from the text.
+    multi: true
+    status: draft
+    values: [family_with_kids, elderly_parents, working_couple, single, tenant, owner, pet_owner, none]
+
+  city_signal:
+    description: City tier of the city mentioned or clearly implied.
+    multi: false
+    status: fixed
+    values: [metro, tier_2, tier_3_or_smaller, unclear]
+    metro_cities: [Delhi NCR, Mumbai, Bangalore, Chennai, Kolkata, Hyderabad, Pune, Ahmedabad]
+    tier_2_cities: [Jaipur, Lucknow, Chandigarh, Kochi, Coimbatore, Indore, Nagpur, Surat, Vadodara,
+                    Visakhapatnam, Bhopal, Patna, Guwahati, Kanpur, Ludhiana, Mysore, Nashik,
+                    Thiruvananthapuram]
+    rules:
+      - "A city is mentioned but is in neither list -> tier_3_or_smaller."
+      - "No city mentioned or inferable -> unclear."
+    # Spelling aliases (same city, not new cities) used when matching:
+    aliases:
+      Delhi NCR: [Delhi, New Delhi, NCR, Gurugram, Gurgaon, Noida, Greater Noida, Ghaziabad, Faridabad]
+      Mumbai: [Bombay, Navi Mumbai, Thane]
+      Bangalore: [Bengaluru]
+      Chennai: [Madras]
+      Kolkata: [Calcutta]
+      Hyderabad: [Secunderabad]
+      Kochi: [Cochin]
+      Visakhapatnam: [Vizag]
+      Mysore: [Mysuru]
+      Thiruvananthapuram: [Trivandrum]
+      Vadodara: [Baroda]
+
+  sentiment:
+    description: Overall sentiment of the text toward UC.
+    multi: false
+    status: fixed
+    values: [positive, neutral, negative, mixed]
+
+  platform:
+    description: Where the text was collected. Set by the collector, not by the tagger.
+    multi: false
+    status: fixed
+    values: [play_store, app_store, consumer_complaints, youtube, reddit]
+    # trustpilot: excluded (bot check). shareholder_letters: not tagged (management statements,
+    # kept as a separate qualitative source). See docs/evidence_log.md.

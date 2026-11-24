@@ -1,0 +1,16 @@
+google-play-scraper
+app-store-scraper
+requests
+beautifulsoup4
+python-dotenv
+pandas
+rapidfuzz
+groq
+pyyaml
+tqdm
+langdetect
+google-api-python-client
+# added: needed to extract text from the public shareholder-letter / transcript PDFs
+pypdf
+# dashboard (read-only results explorer: streamlit run dashboard/app.py)
+streamlit
