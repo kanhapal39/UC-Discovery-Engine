@@ -1,0 +1,14 @@
+# Collection, cleaning, filtering and tagging (local work). Install IN ADDITION to requirements.txt:
+#   pip install -r requirements.txt -r requirements-pipeline.txt
+google-play-scraper
+app-store-scraper
+requests
+beautifulsoup4
+python-dotenv
+rapidfuzz
+groq
+tqdm
+langdetect
+google-api-python-client
+# needed to extract text from the public shareholder-letter / transcript PDFs
+pypdf

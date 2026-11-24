@@ -1,16 +1,6 @@
-google-play-scraper
-app-store-scraper
-requests
-beautifulsoup4
-python-dotenv
-pandas
-rapidfuzz
-groq
-pyyaml
-tqdm
-langdetect
-google-api-python-client
-# added: needed to extract text from the public shareholder-letter / transcript PDFs
-pypdf
-# dashboard (read-only results explorer: streamlit run dashboard/app.py)
-streamlit
+# Dashboard only (what Streamlit Cloud installs): streamlit run dashboard/app.py
+# For collection, cleaning and tagging, also install requirements-pipeline.txt.
+streamlit>=1.50    # tested on 1.50; dataframe row selection and width="stretch" need a recent version
+altair>=5.0        # charts (imported directly by the dashboard)
+pandas>=2.0
+pyyaml>=6.0

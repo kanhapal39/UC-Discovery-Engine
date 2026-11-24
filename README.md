@@ -71,9 +71,13 @@ directional (±5–8 points); two runs of the same model disagree on 11 of 500 m
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env      # then fill in your own keys (see below)
+pip install -r requirements.txt               # dashboard only: enough to run streamlit run dashboard/app.py
+pip install -r requirements-pipeline.txt      # in addition, to run the collectors, cleaning and tagging locally
+cp .env.example .env                          # pipeline only: then fill in your own keys (see below)
 ```
+`requirements.txt` holds only the dashboard's dependencies (it's what Streamlit Cloud installs);
+`requirements-pipeline.txt` holds everything the collectors and pipeline need on top of it. The dashboard needs no
+API keys.
 
 `.env` keys: `NVIDIA_API_KEY` (tagging), `YOUTUBE_API_KEY` (YouTube collector), `APIFY_TOKEN` (Reddit, later).
 `GROQ_API_KEY` and `OPENROUTER_API_KEY` are optional alternative providers. `.env` is git-ignored.

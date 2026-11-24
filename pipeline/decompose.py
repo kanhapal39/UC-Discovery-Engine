@@ -23,9 +23,10 @@ from collections import Counter
 
 from pathlib import Path
 
-from pipeline.clean import PROCESSED_DIR
-
+# Defined here rather than imported from pipeline.clean: the dashboard imports this module, and pipeline.clean pulls
+# in the collection/cleaning dependencies (langdetect, requests, rapidfuzz), which the dashboard doesn't install.
 ROOT = Path(__file__).resolve().parent.parent
+PROCESSED_DIR = ROOT / "data" / "processed"
 
 # --- stage rules (codebook values) -------------------------------------------------------------------------
 S1_OUTCOMES = {"service_not_delivered"}
