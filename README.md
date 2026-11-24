@@ -105,19 +105,19 @@ streamlit run dashboard/app.py     # dashboard on http://localhost:8501 (run fro
 
 ## Where outputs land
 
-Two result files **are included** in the repository, so the dashboard works straight after cloning, with no API keys
+Three result files **are included** in the repository, so the dashboard works straight after cloning, with no API keys
 and no pipeline run:
 
 | File | What it is |
 |---|---|
 | `data/processed/tagged_v2.jsonl` | the 500-review sample tagged by Nemotron (PII-scrubbed, names redacted): input to the funnel and dashboard |
 | `data/processed/decomposition.json` | the 4-stage funnel output of `python -m pipeline.decompose` |
+| `data/processed/tagged.jsonl` | the earlier tagging run of the same 500 reviews (before the 2026-11-24 rule tightening): lets the Data Quality page show the old-vs-new golden-set scores and run-to-run noise |
 
 Everything else stays out of git: `data/raw/` (raw collected reviews and investor PDFs) and the rest of
 `data/processed/` (cleaned and filtered sets, the tag cache, logs). Re-create those with the commands above.
 
-To open the dashboard from a fresh clone: run Setup, then `streamlit run dashboard/app.py`. Without the earlier
-tagging run (`tagged.jsonl`), the Data Quality page shows only the current run, not the old-vs-new comparison.
+To open the dashboard from a fresh clone: run Setup, then `streamlit run dashboard/app.py`.
 
 ## Repository layout
 
