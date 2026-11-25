@@ -4,6 +4,8 @@
 
 Reads data/processed/tagged_v2.jsonl (and tagged.jsonl for the run-to-run comparison), docs/golden_20.csv,
 pipeline/decompose.py (funnel rules) and dashboard/content.yaml (wording). Never writes anything.
+The Overview's research assistant (dashboard/assistant.py) sends questions + retrieved evidence to Groq; it needs
+GROQ_API_KEY in Streamlit secrets, the environment, or the local .env.
 """
 import json
 import sys
@@ -19,6 +21,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from pipeline.decompose import STAGES, run as decompose, signals, stage_of  # noqa: E402
 from pipeline.score_gold import score as score_gold  # noqa: E402
+from dashboard import assistant  # noqa: E402
 
 PROC = ROOT / "data" / "processed"
 TAGGED, TAGGED_V1 = PROC / "tagged_v2.jsonl", PROC / "tagged.jsonl"
@@ -57,6 +60,10 @@ st.markdown("""
   .sub {color: #3D4852; font-size: 0.9rem; margin-top: 0.3rem;}
   .quote {color: #3D4852; font-size: 0.85rem; font-style: italic; margin-top: 0.4rem;}
   .card-title {font-weight: 600; margin-bottom: 0.25rem;}
+  .ra-box {border: 1px solid #E3E6E8; border-radius: 10px; padding: 1.1rem 1.2rem 0.4rem 1.2rem; margin-bottom: 1.2rem;}
+  div[data-testid="stButton"] button[kind="secondary"] {border-radius: 999px; font-size: 0.85rem; padding: 0.2rem 0.8rem;
+      border-color: #D5DADF; color: #222; text-align: left; white-space: normal; height: auto; min-height: 2.2rem;}
+  .ra-meta {color: #5F6B76; font-size: 0.8rem;}
   blockquote {border-left: 3px solid #1F4E79 !important; color: #222;}
 </style>""", unsafe_allow_html=True)
 
@@ -185,6 +192,88 @@ p1, p2, p3, p4, p5 = st.tabs(["Overview", "User Behaviour", "Product Opportuniti
 
 # ============================================================================ 1. Overview
 with p1:
+    # ---- research assistant -------------------------------------------------------------------------------
+    elig_rows = list(by_id.values())
+    stage_fn = lambda r: stage_of(signals(r["tags"]))
+
+    @st.cache_data(show_spinner=False, ttl=3600)
+    def cached_answer(question):  # same question within an hour reuses the answer (saves Groq tokens)
+        out = assistant.ask(question, elig_rows, summary, stage_fn, assistant.groq_key(st.secrets))
+        out["cited"] = [(c, r["id"]) for c, r in out["cited"]]
+        out["retrieved"] = [(c, r["id"]) for c, r in out["retrieved"]]
+        return out
+
+    def _use_chip(q):
+        st.session_state["ra_input"] = q
+        st.session_state["ra_go"] = True
+
+    st.markdown('<div class="kicker">Research assistant</div>', unsafe_allow_html=True)
+    with st.container(border=True):
+        qcol, bcol = st.columns([5, 1.4], vertical_alignment="bottom")
+        question = qcol.text_input("Question", key="ra_input", label_visibility="collapsed",
+                                   placeholder="Ask anything about UC customer behaviour, expectations, or pain points...")
+        if bcol.button("Ask the research assistant", type="primary", use_container_width=True):
+            st.session_state["ra_go"] = True
+        chip_cols = st.columns(4)
+        for i, q in enumerate(assistant.SUGGESTED_QUESTIONS):
+            chip_cols[i % 4].button(q, key="chip%d" % i, on_click=_use_chip, args=(q,), use_container_width=True)
+        st.markdown('<div class="ra-meta">Answers come only from the %d tagged reviews and their summary numbers, '
+                    'via Groq (%s). Quotes below each answer are shown straight from the data.</div>'
+                    % (n, assistant.DEFAULT_MODEL), unsafe_allow_html=True)
+
+    if st.session_state.pop("ra_go", False) and (question or "").strip():
+        st.session_state["ra_last"] = question.strip()
+    asked = st.session_state.get("ra_last")
+    if asked:
+        if not assistant.groq_key(st.secrets):
+            st.warning("The research assistant needs a GROQ_API_KEY (Streamlit secrets, environment, or .env). "
+                       "Everything else on the dashboard works without it.")
+        else:
+            try:
+                with st.spinner("Reading the evidence..."):
+                    res = cached_answer(asked)
+            except assistant.AssistantBusy as e:
+                st.warning("The assistant is busy (Groq free-tier rate limit). %s" % (
+                    "Try again in about %d seconds." % (e.wait + 1) if e.wait else "Try again in a little while."))
+                res = None
+            except Exception as e:  # network / API errors: say so, don't crash the page
+                st.error("The research assistant couldn't answer (%s). The rest of the dashboard is unaffected."
+                         % type(e).__name__)
+                res = None
+            if res:
+                with st.container(border=True):
+                    st.markdown('<div class="kicker">Question</div>**%s**' % asked, unsafe_allow_html=True)
+                    conf = {"clear": "Clear answer from the data", "partial": "Partial: the data only partly answers this",
+                            "insufficient": "The data doesn't clearly answer this"}.get(res["confidence"], res["confidence"])
+                    st.markdown('<div class="ra-meta">%s · based on the %d most relevant reviews · fields: %s</div>'
+                                % (conf, len(res["retrieved"]), ", ".join(res["fields"])), unsafe_allow_html=True)
+                    st.markdown(res["answer"])
+                    if res["data_gaps"]:
+                        st.info("**What the data can't tell:** " + res["data_gaps"])
+                    if res["unverified"]:
+                        st.warning("Couldn't match these quoted words exactly in the evidence, so treat them as "
+                                   "paraphrase: " + "; ".join('"%s"' % u for u in res["unverified"]))
+                st.markdown('<div class="kicker">Supporting quotes</div>', unsafe_allow_html=True)
+                shown_ids = res["cited"] or res["retrieved"][:5]
+                if not res["cited"]:
+                    st.caption("The answer didn't quote specific reviews; these are the most relevant ones retrieved.")
+                qcols = st.columns(2)
+                for j, (cid, rid) in enumerate(shown_ids):
+                    r = by_id[rid]
+                    t = r["tags"]
+                    with qcols[j % 2], st.container(border=True):
+                        st.markdown("> %s" % (t.get("evidence_quote") or " ".join(r["text"].split()[:60]) + "..."))
+                        st.markdown('<div class="ra-meta">[%s] · %s · %s%s · %s · reasons: %s</div>' % (
+                            cid, STAGE_LABEL[stage_fn(r)], r["source"].replace("_", " "),
+                            ", %s★" % r["rating"] if r.get("rating") else "", t["category"],
+                            ", ".join(_as_list(t["reason_not_rebook"]))), unsafe_allow_html=True)
+                with st.expander("All %d reviews the assistant read" % len(res["retrieved"])):
+                    st.dataframe(pd.DataFrame([{"ref": c, "id": rid, "stage": STAGE_LABEL[stage_fn(by_id[rid])],
+                                                "quote": by_id[rid]["tags"].get("evidence_quote") or ""}
+                                               for c, rid in res["retrieved"]]), hide_index=True, width="stretch")
+                st.caption("Tokens used: %s · model: %s" % (res.get("tokens"), res["model"]))
+        st.divider()
+
     c1, c2, c3 = st.columns(3)
     with c1, st.container(border=True):
         st.markdown('<div class="kicker">Reviews tagged</div><div class="big">%d</div>'

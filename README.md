@@ -39,7 +39,7 @@ collect  →  clean  →  filter  →  (sample)  →  tag  →  decompose
 | tag | `pipeline/tag.py` | LLM tagging (NVIDIA Nemotron 3 Ultra) against [`codebook.yaml`](codebook.yaml): 14 fields, strict validation, verbatim evidence quotes, names redacted |
 | decompose | `pipeline/decompose.py` | Assigns each metric-eligible review to the first funnel stage it fails |
 | validate | `pipeline/score_gold.py` | Scores the tags against a 20-review human-corrected golden set ([`docs/golden_20.csv`](docs/golden_20.csv)) |
-| explore | `dashboard/app.py` | Read-only Streamlit dashboard |
+| explore | `dashboard/app.py` | Read-only Streamlit dashboard, with a research assistant (`dashboard/assistant.py`): keyword/tag retrieval over the 402 reviews, then Groq answers only from that evidence, with verbatim quotes |
 
 ## Finding: the 4-stage funnel
 
@@ -77,7 +77,9 @@ cp .env.example .env                          # pipeline only: then fill in your
 ```
 `requirements.txt` holds only the dashboard's dependencies (it's what Streamlit Cloud installs);
 `requirements-pipeline.txt` holds everything the collectors and pipeline need on top of it. The dashboard needs no
-API keys.
+API keys, except for the **research assistant** on its Overview page, which uses Groq: it reads `GROQ_API_KEY` from
+Streamlit secrets (`.streamlit/secrets.toml` locally, the Secrets box on Streamlit Cloud; git-ignored), then the
+environment, then `.env`. Without a key, the rest of the dashboard works and the assistant says it needs one.
 
 `.env` keys: `NVIDIA_API_KEY` (tagging), `YOUTUBE_API_KEY` (YouTube collector), `APIFY_TOKEN` (Reddit, later).
 `GROQ_API_KEY` and `OPENROUTER_API_KEY` are optional alternative providers. `.env` is git-ignored.

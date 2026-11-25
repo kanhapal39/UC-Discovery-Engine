@@ -4,3 +4,4 @@ streamlit>=1.50    # tested on 1.50; dataframe row selection and width="stretch"
 altair>=5.0        # charts (imported directly by the dashboard)
 pandas>=2.0
 pyyaml>=6.0
+groq>=0.9         # research assistant on the Overview page (needs GROQ_API_KEY in Streamlit secrets)
