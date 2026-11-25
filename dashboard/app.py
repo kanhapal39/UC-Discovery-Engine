@@ -51,7 +51,7 @@ st.set_page_config(page_title="UC Discovery Engine", layout="wide", initial_side
 st.markdown("""
 <style>
   [data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"] {display: none;}
-  .block-container {padding-top: 2rem; max-width: 1200px;}
+  .block-container {padding-top: 4.75rem; max-width: 1200px;}  /* clears Streamlit's fixed ~3.75rem top toolbar */
   .stTabs [data-baseweb="tab-list"] {gap: 1.75rem; border-bottom: 1px solid #E3E6E8;}
   .stTabs [data-baseweb="tab"] {font-size: 1rem; padding: 0.6rem 0;}
   .kicker {color: #5F6B76; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.2rem;}
@@ -184,7 +184,7 @@ V = {  # live numbers for content.yaml placeholders
 fill = lambda s: s.format(**V)
 
 st.markdown('<div class="kicker">Urban Company · 90-day repeat booking</div>', unsafe_allow_html=True)
-st.title("Discovery Engine")
+st.title("Discovery Engine", anchor=False)
 st.caption("Read-only · %d metric-eligible reviews from public sources, tagged by Nemotron · %s" % (n, content["status_note"]))
 
 p1, p2, p3, p4, p5 = st.tabs(["Overview", "User Behaviour", "Product Opportunities", "Evidence Explorer",
